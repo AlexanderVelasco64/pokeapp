@@ -1,8 +1,9 @@
-import com.example.pokeapp.PokemonResponse
+package com.example.pokeapp
+
 import retrofit2.http.GET
 import retrofit2.http.Path
 
-interface PokeApiService {
-    @GET("pokemon/{name}")
-    suspend fun getPokemonByName(@Path("name") name: String): PokemonResponse
+interface `PokeApiService` {
+    @GET("pokemon/{id}")
+    suspend fun getPokemonById(@Path("id") id: Int): PokemonResponse
 }

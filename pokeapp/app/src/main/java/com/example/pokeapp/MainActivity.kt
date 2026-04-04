@@ -14,12 +14,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.lifecycleScope
 import com.example.pokeapp.ui.theme.PokeappTheme
-import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.create
 import kotlin.jvm.java
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -49,16 +46,24 @@ class MainActivity : ComponentActivity() {
                             .addConverterFactory(GsonConverterFactory.create())
                             .build()
 
-                        val service = retrofit.create(PokeApiService::class.java)
-                        val result = service.getPokemonByName("pikachu")
+                        val service = retrofit.create(`PokeApiService`::class.java)
 
+                        // LOOP: Fetch 1 to 151
+                        for (i in 1..151) {
+                            pokemonName = "Syncing Pokémon #$i..." // Update the UI so you see progress
+
+                            val result = service.getPokemonById(i)
+                            db.pokemonDao().insertPokemon(result)
+                        }
+                        pokemonName = "Sync Complete! 151 Pokémon Saved."
+
+                        //val result = service.getPokemonByName("pikachu")
                         // This saves Pikachu to your local phone storage!
-                        db.pokemonDao().insertPokemon(result)
-
-                        pokemonName = "Found & Saved: ${result.name} (Weight: ${result.weight})"
+                        //db.pokemonDao().insertPokemon(result)
+                        //pokemonName = "Found & Saved: ${result.name} (Weight: ${result.weight})"
                     } catch (e: Exception) {
                         // This will show us if the internet/URL failed
-                        pokemonName = "Error: ${e.localizedMessage}"
+                        pokemonName = "Sync Error: ${e.localizedMessage}"
                     }
                 }
 
