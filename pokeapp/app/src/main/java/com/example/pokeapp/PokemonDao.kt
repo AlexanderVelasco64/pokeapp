@@ -14,4 +14,8 @@ interface PokemonDao {
     // This saves a pokemon. If it already exists, it "REPLACES" it (updates it)
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPokemon(pokemon: PokemonResponse)
+
+    @Query("SELECT * FROM pokemon_table ORDER BY id ASC")
+    suspend fun getAllPokemon(): List<PokemonResponse>
+
 }
