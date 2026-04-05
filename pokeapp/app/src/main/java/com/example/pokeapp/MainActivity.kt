@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,11 +53,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             PokeappTheme {
                 val pokemonList = remember { mutableStateListOf<PokemonResponse>() }
-                var pokemonName by remember { mutableStateOf("Loading...") }
+
+                // 1. Keep track of which region is selected
+                var selectedRegion by remember { mutableStateOf<Region?>(null) }
+                var syncStatus by remember { mutableStateOf("Checking for updates...") }
 
                 // Load data from DB after sync is done
                 LaunchedEffect(Unit) {
-
                    try {
                        val retrofit = Retrofit.Builder()
                        .baseUrl("https://pokeapi.co/api/v2/")
@@ -65,33 +68,40 @@ class MainActivity : ComponentActivity() {
                        val service = retrofit.create(`PokeApiService`::class.java)
 
                        val totalPokemon = 1025 // Current National Dex count
-
                        for (i in 1..totalPokemon) {
                            // Check if we already have it first!
                            val existing = db.pokemonDao().getPokemonById(i)
                            if (existing == null) {
-                               pokemonName = "Downloading #$i..."
+                               syncStatus = "Downloading #$i..."
                                val result = service.getPokemonById(i)
                                db.pokemonDao().insertPokemon(result)
                            }
-                           pokemonName = "Sync Complete! 1025 Pokémon Saved."
-
                        }
+                       syncStatus = "Sync Complete! 1025 Pokémon Saved."
                    } catch (e: Exception) {
                        // This will show us if the internet/URL failed
-                       pokemonName = "Sync Error: ${e.localizedMessage}"
+                       syncStatus = "Sync Error: ${e.localizedMessage}"
                    }
-
-                    // (Keep your existing Sync Loop here)
 
                     // After loop finishes, pull everything from the DB
                     val allPokemon = db.pokemonDao().getAllPokemon() // You'll need to add this to your DAO!
                     pokemonList.addAll(allPokemon)
                 }
 
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(pokemonList) { pokemon ->
-                        PokemonRow(pokemon)
+                Surface(modifier = Modifier.fillMaxSize(), color = colorScheme.background) {
+                    if (selectedRegion == null) {
+                        // Show the Regions List
+                        RegionSelectionScreen(onRegionSelected = { selectedRegion = it })
+
+                        // Optional: show sync status at the bottom of the region screen
+                        // Text(syncStatus, modifier = Modifier.padding(16.dp))
+                    } else {
+                        // Show the Filtered Region List
+                        PokemonListScreen(
+                            region = selectedRegion!!,
+                            db = db,
+                            onBack = { selectedRegion = null }
+                        )
                     }
                 }
             }
