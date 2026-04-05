@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.room.Room
 import coil.compose.AsyncImage
 
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,9 +52,36 @@ class MainActivity : ComponentActivity() {
         setContent {
             PokeappTheme {
                 val pokemonList = remember { mutableStateListOf<PokemonResponse>() }
+                var pokemonName by remember { mutableStateOf("Loading...") }
 
                 // Load data from DB after sync is done
                 LaunchedEffect(Unit) {
+
+                   try {
+                       val retrofit = Retrofit.Builder()
+                       .baseUrl("https://pokeapi.co/api/v2/")
+                       .addConverterFactory(GsonConverterFactory.create())
+                       .build()
+                       val service = retrofit.create(`PokeApiService`::class.java)
+
+                       val totalPokemon = 1025 // Current National Dex count
+
+                       for (i in 1..totalPokemon) {
+                           // Check if we already have it first!
+                           val existing = db.pokemonDao().getPokemonById(i)
+                           if (existing == null) {
+                               pokemonName = "Downloading #$i..."
+                               val result = service.getPokemonById(i)
+                               db.pokemonDao().insertPokemon(result)
+                           }
+                           pokemonName = "Sync Complete! 1025 Pokémon Saved."
+
+                       }
+                   } catch (e: Exception) {
+                       // This will show us if the internet/URL failed
+                       pokemonName = "Sync Error: ${e.localizedMessage}"
+                   }
+
                     // (Keep your existing Sync Loop here)
 
                     // After loop finishes, pull everything from the DB
@@ -72,79 +98,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PokeappTheme {
-        Greeting("Android")
-    }
-}
-
-fun getPokemonColor(type: String): Color {
-    return when (type.lowercase()) {
-        "fire" -> Color(0xFFFF421C)
-        "water" -> Color(0xFF6390F0)
-        "grass" -> Color(0xFF7AC74C)
-        "electric" -> Color(0xFFF7D02C)
-        "psychic" -> Color(0xFFF95587)
-        "ice" -> Color(0xFF96D9D6)
-        "dragon" -> Color(0xFF6F35FC)
-        "ghost" -> Color(0xFF735797)
-        "dark" -> Color(0xFF705746)
-        "steel" -> Color(0xFFB7B7CE)
-        "fairy" -> Color(0xFFD685AD)
-        "poison" -> Color(0XFF8E38CF)
-        "flying" -> Color(0xFF81C0FF)
-        "bug"-> Color(0xFF8EA616)
-        "fighting"-> Color(0xFFFF8C00)
-        "rock"-> Color(0xFFA5A578)
-        "ground"-> Color(0xFF965224)
-
-        else -> Color.Gray // Normal
-    }
-}
-
-@Composable
-fun PokemonRow(pokemon: PokemonResponse) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
-            // Display the Sprite using Coil
-            AsyncImage(
-                model = pokemon.sprites.frontDefault,
-                contentDescription = pokemon.name,
-                modifier = Modifier.size(80.dp)
-            )
-
-            Column(modifier = Modifier.padding(start = 16.dp)) {
-                Text(text = "#${pokemon.id} ${pokemon.name.uppercase()}", style = MaterialTheme.typography.headlineSmall)
-
-                // Display types with color coding
-                Row {
-                    pokemon.types.forEach { typeEntry ->
-                        val typeName = typeEntry.type.name
-                        Surface(
-                            color = getPokemonColor(typeName),
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier.padding(end = 4.dp, top = 4.dp)
-                        ) {
-                            Text(text = typeName, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), color = Color.White)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-

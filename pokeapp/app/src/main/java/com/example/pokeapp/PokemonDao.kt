@@ -17,5 +17,6 @@ interface PokemonDao {
 
     @Query("SELECT * FROM pokemon_table ORDER BY id ASC")
     suspend fun getAllPokemon(): List<PokemonResponse>
-
+    @Query("SELECT * FROM pokemon_table WHERE id = :id LIMIT 1")
+    suspend fun getPokemonById(id: Int): PokemonResponse?
 }
